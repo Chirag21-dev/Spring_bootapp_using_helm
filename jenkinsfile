@@ -4,6 +4,13 @@ pipeline {
     
         maven 'Maven-3.9'
     }
+    environment {
+
+        K8S_NAMESPACE = 'devops'
+        HELM_RELEASE   = 'my-application'
+        HELM_CHART     = 'helm/my-docker-repo'
+    }
+
   
     stages {
         stage('Checkout') {
@@ -53,5 +60,65 @@ stage('Push to ECR') {
         '''
     }
 }
+stage('Configure Kubernetes') {
+            steps {
+                sh '''
+                    kubectl cluster-info
+
+                    kubectl create namespace ${K8S_NAMESPACE} \
+                    --dry-run=client -o yaml | kubectl apply -f -
+
+                    ECR_PASSWORD=$(aws ecr get-login-password \
+                    --region ${AWS_REGION})
+
+                    kubectl create secret docker-registry ecr-secret \
+                    --namespace ${K8S_NAMESPACE} \
+                    --docker-server=${ECR_REGISTRY} \
+                    --docker-username=AWS \
+                    --docker-password="${ECR_PASSWORD}" \
+                    --dry-run=client -o yaml | kubectl apply -f -
+
+                    unset ECR_PASSWORD
+                '''
+            }
+        }
+
+stage('Helm Chart Validation') {
+            steps {
+                sh '''
+                    helm lint ${HELM_CHART}
+
+                    helm template ${HELM_RELEASE} ${HELM_CHART} \
+                    --namespace ${K8S_NAMESPACE} \
+                    --set-string image.tag=${IMAGE_TAG} \
+                    --set fullnameOverride=${HELM_RELEASE}
+                '''
+            }
+        }
+ stage('Deploy using Helm') {
+            steps {
+                sh '''
+                    helm upgrade --install ${HELM_RELEASE} ${HELM_CHART} \
+                    --namespace ${K8S_NAMESPACE} \
+                    --set-string image.repository=${ECR_REGISTRY}/${ECR_REPO} \
+                    --set-string image.tag=${IMAGE_TAG} \
+                    --set fullnameOverride=${HELM_RELEASE} \
+                    --wait \
+                    --timeout 5m
+                '''
+            }
+        }
+
+
 }
+ post {
+        success {
+            echo "Application successfully deployed using Helm!"
+            echo "Docker Image: ${ECR_REGISTRY}/${ECR_REPO}:${BUILD_NUMBER}"
+        }
+
+        failure {
+            echo 'Pipeline failed. Check Jenkins console output.'
+        }
+    }
 }
