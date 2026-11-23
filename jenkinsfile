@@ -34,5 +34,13 @@ pipeline {
         '''
     }
 }
+stage('Push to ECR') {
+    steps {
+        sh '''
+            docker push 034362060941.dkr.ecr.us-east-1.amazonaws.com/my-docker-repo:${BUILD_NUMBER}
+            docker push 034362060941.dkr.ecr.us-east-1.amazonaws.com/my-docker-repo:latest
+        '''
+    }
+}
 }
 }
