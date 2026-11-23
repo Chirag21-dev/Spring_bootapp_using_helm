@@ -8,6 +8,12 @@ pipeline {
                 checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/akannan1087/docker-spring-boot']])
             }
         }
+
+       stage('Compile') {
+            steps {
+                sh 'mvn compile'
+            }
+        }
         
         stage ("Build JAR") {
             steps {
