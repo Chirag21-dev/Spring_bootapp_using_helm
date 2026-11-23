@@ -41,7 +41,7 @@ stage('Login to ECR') {
                     aws sts get-caller-identity
 
                     aws ecr get-login-password --region us-east-1 | \
-                    | docker login --username AWS --password-stdin 034362060941.dkr.ecr.us-east-1.amazonaws.com
+                    docker login --username AWS --password-stdin 034362060941.dkr.ecr.us-east-1.amazonaws.com
                 '''
             }
         }
