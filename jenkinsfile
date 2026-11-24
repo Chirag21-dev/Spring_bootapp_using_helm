@@ -5,10 +5,11 @@ pipeline {
         maven 'Maven-3.9'
     }
     environment {
-
+        ECR_REGISTRY = '034362060941.dkr.ecr.us-east-1.amazonaws.com'
         K8S_NAMESPACE = 'devops'
         HELM_RELEASE   = 'my-application'
         HELM_CHART     = 'helm/my-docker-repo'
+        ECR_REPO='my-docker-repo'
     }
 
   
@@ -69,7 +70,7 @@ stage('Configure Kubernetes') {
                     --dry-run=client -o yaml | kubectl apply -f -
 
                     ECR_PASSWORD=$(aws ecr get-login-password \
-                    --region ${AWS_REGION})
+                    --region us-east-1
 
                     kubectl create secret docker-registry ecr-secret \
                     --namespace ${K8S_NAMESPACE} \
